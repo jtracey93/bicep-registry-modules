@@ -219,10 +219,10 @@ module mg 'br/public:avm/res/management/management-group:0.1.2' = if (createOrUp
 }
 
 // If createOrUpdateManagementGroup is false, then the management group already exists and we need to check the management group exists and do a GET on it
-resource mgExisting 'Microsoft.Management/managementGroups@2023-04-01' existing = if (!createOrUpdateManagementGroup) {
-  scope: tenant()
-  name: managementGroupName
-}
+// resource mgExisting 'Microsoft.Management/managementGroups@2023-04-01' existing = if (!createOrUpdateManagementGroup) {
+//   scope: tenant()
+//   name: managementGroupName
+// }
 
 // N x Subscription Placement in Management Group Created or Existing (Optional)
 @batchSize(1)
@@ -235,7 +235,8 @@ module mgSubPlacementWait 'modules/wait.bicep' = [
 resource mgSubPlacement 'Microsoft.Management/managementGroups/subscriptions@2023-04-01' = [
   for (sub, i) in subscriptionsToPlaceInManagementGroup: {
     scope: tenant()
-    name: createOrUpdateManagementGroup ? '${managementGroupName}/${sub}' : '${mgExisting.name}/${sub}'
+    #disable-next-line use-parent-property
+    name: '${managementGroupName}/${sub}'
     dependsOn: [
       mg
     ]
@@ -249,7 +250,6 @@ module mgCustomPolicyDefinitionsWait 'modules/wait.bicep' = [
     name: '${deploymentNames.mgCustomPolicyDefinitionsWait}-${index}'
     dependsOn: [
       mg
-      mgExisting
     ]
   }
 ]
@@ -272,7 +272,6 @@ module mgCustomPolicySetDefinitionsWait 'modules/wait.bicep' = [
     name: '${deploymentNames.mgCustomPolicySetDefinitionsWait}-${index}'
     dependsOn: [
       mg
-      mgExisting
     ]
   }
 ]
@@ -296,7 +295,6 @@ module mgPolicyAssignmentsWait 'modules/wait.bicep' = [
     name: '${deploymentNames.mgPolicyAssignmentsWait}-${index}'
     dependsOn: [
       mg
-      mgExisting
     ]
   }
 ]
@@ -324,7 +322,7 @@ module mgPolicyAssignments 'br/public:avm/ptn/authorization/policy-assignment:0.
       roleDefinitionIds: polAsi.?roleDefinitionIds
       parameters: polAsi.?parameters
       parameterOverrides: polAsi.?parameterOverrides
-      managementGroupId: createOrUpdateManagementGroup ? mg.outputs.name : mgExisting.name
+      managementGroupId: managementGroupName
       nonComplianceMessages: polAsi.?nonComplianceMessages
       metadata: polAsi.?metadata
       overrides: polAsi.?overrides
@@ -346,7 +344,6 @@ module mgRoleDefinitionsWait 'modules/wait.bicep' = [
     name: '${deploymentNames.mgRoleDefinitionsWait}-${index}'
     dependsOn: [
       mg
-      mgExisting
     ]
   }
 ]
@@ -380,7 +377,6 @@ module mgRoleAssignmentsWait 'modules/wait.bicep' = [
     name: '${deploymentNames.mgRoleAssignmentsWait}-${index}'
     dependsOn: [
       mg
-      mgExisting
     ]
   }
 ]
@@ -392,7 +388,7 @@ module mgRoleAssignments 'br/public:avm/ptn/authorization/role-assignment:0.2.2'
       64
     )
     params: {
-      managementGroupId: createOrUpdateManagementGroup ? mg.outputs.name : mgExisting.name
+      managementGroupId: managementGroupName
       principalId: roleAssignment.principalId
       roleDefinitionIdOrName: roleAssignment.roleDefinitionId
       description: roleAssignment.?description
@@ -411,15 +407,15 @@ module mgRoleAssignments 'br/public:avm/ptn/authorization/role-assignment:0.2.2'
 
 // Outputs
 @description('The resource ID of the management group.')
-output managementGroupResourceId string = createOrUpdateManagementGroup ? mg.outputs.resourceId : mgExisting.id
+output managementGroupResourceId string = managementGroupName
 
 @description('The ID of the management group.')
-output managementGroupId string = createOrUpdateManagementGroup ? mg.outputs.name : mgExisting.name
+output managementGroupId string = managementGroupName
 
-@description('The parent management group ID of the management group.')
-output managementGroupParentId string = createOrUpdateManagementGroup
-  ? (managementGroupParentId ?? tenant().tenantId)
-  : mgExisting.properties.details.parent.id // Only doing this as think i've found a bug in Bicep/ARM, see: https://github.com/Azure/bicep/issues/15642
+// @description('The parent management group ID of the management group.')
+// output managementGroupParentId string = createOrUpdateManagementGroup
+//   ? (managementGroupParentId ?? tenant().tenantId)
+//   : mgExisting.properties.details.parent.id // Only doing this as think i've found a bug in Bicep/ARM, see: https://github.com/Azure/bicep/issues/15642
 
 @description('The custom role definitions created on the management group.')
 output managementGroupCustomRoleDefinitionIds array = [

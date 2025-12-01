@@ -208,7 +208,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableT
 }
 
 // Single Management Group Creation (Optional)
-module mg 'br/public:avm/res/management/management-group:0.1.2' = if (createOrUpdateManagementGroup) {
+module mg 'modules/mg.bicep' = if (createOrUpdateManagementGroup) {
   name: deploymentNames.mg
   params: {
     name: managementGroupName
